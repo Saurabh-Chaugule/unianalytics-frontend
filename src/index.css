@@ -4,15 +4,87 @@
 
 @layer base {
   body {
-    @apply bg-brand-light text-slate-900 transition-colors duration-300;
+    /* Added antialiased for crisper font rendering on high-res displays */
+    @apply bg-slate-50 text-slate-900 transition-colors duration-300 antialiased;
   }
   .dark body {
-    @apply bg-brand-dark text-slate-100;
+    @apply bg-slate-900 text-slate-100;
+  }
+
+  /* 1. Custom High-End Text Selection */
+  ::selection {
+    @apply bg-indigo-500/30 text-indigo-900;
+  }
+  .dark ::selection {
+    @apply bg-indigo-500/40 text-indigo-100;
   }
   
-  /* Sleek Scrollbars */
+  /* 2. Premium Enterprise Scrollbars with Hover States */
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { @apply bg-slate-300 rounded-full; }
-  .dark ::-webkit-scrollbar-thumb { @apply bg-slate-700 rounded-full; }
+  
+  ::-webkit-scrollbar-thumb { @apply bg-slate-300 rounded-full transition-colors; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-slate-400; }
+  
+  .dark ::-webkit-scrollbar-thumb { @apply bg-slate-700 rounded-full transition-colors; }
+  .dark ::-webkit-scrollbar-thumb:hover { @apply bg-slate-600; }
 } 
+
+@layer utilities {
+  /* 3. Cross-Browser Scrollbar Hiding (Keeps scrolling active, hides the bar) */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none; /* Chrome, Safari and Opera */
+  }
+
+  /* 4. Smooth Page Transitions */
+  .fade-in {
+    animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+  .slide-up {
+    animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+}
+
+/* --- Keyframes for UI Polish --- */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Standard Enterprise Skeleton Shimmer --- */
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+
+.animate-shimmer {
+  position: relative;
+  overflow: hidden;
+  background-color: #f1f5f9; /* slate-100 */
+}
+
+.dark .animate-shimmer {
+  background-color: #1e293b; /* slate-800 */
+}
+
+.animate-shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  transform: translateX(-100%);
+  /* Slightly brightened the white glare for a sharper shimmer effect */
+  background-image: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+  animation: shimmer 1.5s infinite;
+}
+
+.dark .animate-shimmer::after {
+  background-image: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+}
