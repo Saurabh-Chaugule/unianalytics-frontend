@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-brand-light text-slate-900 transition-colors duration-300;
+  }
+  .dark body {
+    @apply bg-brand-dark text-slate-100;
+  }
+  
+  /* Sleek Scrollbars */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { @apply bg-slate-300 rounded-full; }
+  .dark ::-webkit-scrollbar-thumb { @apply bg-slate-700 rounded-full; }
+} 
