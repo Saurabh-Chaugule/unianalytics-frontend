@@ -9,7 +9,7 @@ const Login = () => {
   const { login } = useStore(); 
   
   const [isRegistering, setIsRegistering] = useState(
-    new URLSearchParams(window.location.search).get('register') === 'true' || true
+    new URLSearchParams(window.location.search).get('register') === 'true' || false
   );
   
   const [showPassword, setShowPassword] = useState(false);
@@ -67,9 +67,9 @@ const Login = () => {
         const loginData = await loginRes.json();
         if (!loginRes.ok) throw new Error(loginData.detail || "Auto-login failed.");
 
-        // 3. Save & Redirect
+        // 3. Save & Redirect (Pass 'username' explicitly since they just created it)
         localStorage.setItem('uni_token', loginData.access_token);
-        login(username, loginData.role || 'teacher', email, dob);
+        login(username, loginData.role || 'Teacher', email, dob);
         navigate('/dashboard');
 
       } else {
@@ -86,15 +86,14 @@ const Login = () => {
         const resData = await res.json();
         if (!res.ok) throw new Error(resData.detail || "Authentication failed. Check credentials.");
 
-        // 2. Save & Redirect
+        // 2. Save & Redirect (Rely solely on backend data)
         localStorage.setItem('uni_token', resData.access_token);
-        login(resData.name || null, resData.role || 'teacher', email, resData.dob || null);
+        login(resData.name, resData.role || 'Teacher', email, resData.dob);
         navigate('/dashboard');
       }
     } catch (err) {
-      // If it fails to fetch entirely, it throws a generic TypeError: Failed to fetch
       if (err.message === 'Failed to fetch') {
-        setError('Network Error: Cannot reach the database. Is your Python backend running on port 8000?');
+        setError('Network Error: Cannot reach the database. Is your backend running?');
       } else {
         setError(err.message);
       }
