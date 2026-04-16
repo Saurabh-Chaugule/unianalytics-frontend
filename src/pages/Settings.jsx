@@ -8,7 +8,6 @@ import apiClient from '../api';
 const safeArr = (val) => Array.isArray(val) ? val : [];
 
 const Settings = () => {
-  // THE FIX: Pull settings variables from the global store so they persist site-wide!
   const { 
     globalData, updateMasterData, userName, userEmail, userDOB, userRole, 
     isDarkMode, toggleDarkMode, logout,
@@ -37,7 +36,6 @@ const Settings = () => {
   const [deleteAccountModal, setDeleteAccountModal] = useState(false); 
   const fileInputRef = useRef(null);
 
-  // THE FIX: Secure Password Update using Fetch API
   const handleChangePassword = async (e) => {
     e.preventDefault();
     setPassMsg({ type: 'loading', text: 'Verifying current password...' });
@@ -69,7 +67,7 @@ const Settings = () => {
       setPassMsg({ type: 'error', text: err.message });
     }
     
-    setTimeout(() => setPassMsg({ type: '', text: '' }), 4000);
+    setTimeout(() => setPassMsg({ type: '', text: '' }), 6000); // Kept longer so they can click the forgot password link
   };
 
   const openForgotModal = () => {
@@ -121,6 +119,22 @@ const Settings = () => {
     newOtp[index] = element.value;
     setResetOtp(newOtp);
     if (element.nextSibling && element.value) element.nextSibling.focus();
+  };
+
+  // THE FIX: Intelligent Backspace Deletion inside Settings Modal
+  const handleOtpKeyDown = (e, index) => {
+    if (e.key === 'Backspace') {
+      e.preventDefault();
+      const newOtp = [...resetOtp];
+      if (newOtp[index] !== '') {
+        newOtp[index] = '';
+        setResetOtp(newOtp);
+      } else if (index > 0) {
+        newOtp[index - 1] = '';
+        setResetOtp(newOtp);
+        e.target.previousSibling.focus();
+      }
+    }
   };
 
   const handleExportExcel = () => {
@@ -304,13 +318,20 @@ const Settings = () => {
                     <button type="submit" className="px-8 py-3.5 bg-gradient-to-r from-blue-600 via-indigo-500 to-blue-600 animate-wave text-white rounded-xl font-bold transition-transform hover:scale-105 shadow-[0_0_15px_rgba(79,70,229,0.4)]">Update Password</button>
                     <button type="button" onClick={openForgotModal} className="text-sm font-bold text-indigo-500 hover:text-indigo-600 hover:underline transition-colors">Forgot Password?</button>
                   </div>
+                  
+                  {/* THE FIX: Points user to forgot password if they put wrong current password */}
                   {passMsg.text && (
-                    <p className={`text-sm font-bold mt-2 animate-in fade-in ${
-                      passMsg.type === 'success' ? 'text-emerald-500' : 
-                      passMsg.type === 'loading' ? 'text-slate-500' : 'text-red-500'
-                    }`}>
-                      {passMsg.text}
-                    </p>
+                    <div className={`mt-3 p-3 rounded-xl flex items-start gap-2 animate-in fade-in border ${passMsg.type === 'success' ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30 text-emerald-600 dark:text-emerald-400' : passMsg.type === 'loading' ? 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400' : 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400'}`}>
+                      {passMsg.type === 'success' ? <CheckCircle2 size={18} className="mt-0.5 flex-shrink-0"/> : passMsg.type === 'error' ? <AlertTriangle size={18} className="mt-0.5 flex-shrink-0"/> : null}
+                      <div className="flex-1">
+                        <p className="text-sm font-bold">{passMsg.text}</p>
+                        {passMsg.type === 'error' && (
+                          <button type="button" onClick={openForgotModal} className="text-xs font-extrabold text-indigo-600 dark:text-indigo-400 mt-1 hover:underline hover:text-indigo-500 block transition-colors">
+                            Forgot your password? Reset it here &rarr;
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   )}
                 </form>
               </div>
@@ -465,7 +486,16 @@ const Settings = () => {
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block text-center">Enter 6-Digit Code</label>
                     <div className="flex justify-between gap-2">
                       {resetOtp.map((data, index) => (
-                        <input key={index} type="text" maxLength="1" value={data} onChange={e => handleOtpChange(e.target, index)} onFocus={e => e.target.select()} className="w-12 h-14 text-center text-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl outline-none focus:ring-2 ring-indigo-500 transition-all font-extrabold" />
+                        <input 
+                          key={index} 
+                          type="text" 
+                          maxLength="1" 
+                          value={data} 
+                          onChange={e => handleOtpChange(e.target, index)} 
+                          onKeyDown={e => handleOtpKeyDown(e, index)} 
+                          onFocus={e => e.target.select()} 
+                          className="w-12 h-14 text-center text-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl outline-none focus:ring-2 ring-indigo-500 transition-all font-extrabold" 
+                        />
                       ))}
                     </div>
                   </div>

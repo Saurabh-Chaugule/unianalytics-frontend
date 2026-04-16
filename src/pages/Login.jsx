@@ -44,7 +44,6 @@ const Login = () => {
           throw new Error('Please create a stronger password before proceeding.');
         }
 
-        // 1. Explicit Fetch to Register API
         const regRes = await fetch('https://unianalytics-api.onrender.com/api/v1/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -54,7 +53,6 @@ const Login = () => {
         const regData = await regRes.json();
         if (!regRes.ok) throw new Error(regData.detail || "Registration failed.");
 
-        // 2. Explicit Fetch to Login API (Requires FormData)
         const loginForm = new FormData();
         loginForm.append('username', email);
         loginForm.append('password', password);
@@ -67,13 +65,11 @@ const Login = () => {
         const loginData = await loginRes.json();
         if (!loginRes.ok) throw new Error(loginData.detail || "Auto-login failed.");
 
-        // 3. Save & Redirect (Pass 'username' explicitly since they just created it)
         localStorage.setItem('uni_token', loginData.access_token);
         login(username, loginData.role || 'Teacher', email, dob);
         navigate('/dashboard');
 
       } else {
-        // 1. Standard Login Fetch
         const loginForm = new FormData();
         loginForm.append('username', email);
         loginForm.append('password', password);
@@ -86,7 +82,6 @@ const Login = () => {
         const resData = await res.json();
         if (!res.ok) throw new Error(resData.detail || "Authentication failed. Check credentials.");
 
-        // 2. Save & Redirect (Rely solely on backend data)
         localStorage.setItem('uni_token', resData.access_token);
         login(resData.name, resData.role || 'Teacher', email, resData.dob);
         navigate('/dashboard');
@@ -155,7 +150,15 @@ const Login = () => {
           {error && (
             <div className="mb-6 p-4 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/50 rounded-xl flex items-start gap-3 animate-in fade-in">
               <AlertCircle size={20} className="text-red-500 dark:text-red-400 flex-shrink-0 mt-0.5" />
-              <p className="text-sm font-bold text-red-600 dark:text-red-400">{error}</p>
+              <div className="flex-1">
+                <p className="text-sm font-bold text-red-600 dark:text-red-400">{error}</p>
+                {/* THE FIX: Points user to forgot password if they fail login */}
+                {!isRegistering && error.toLowerCase().includes('credential') && (
+                  <button type="button" onClick={() => navigate('/forgot-password')} className="text-xs font-extrabold text-indigo-600 dark:text-indigo-400 mt-2 hover:underline hover:text-indigo-500 transition-colors">
+                    Forgot your password? Recover account &rarr;
+                  </button>
+                )}
+              </div>
             </div>
           )}
 
