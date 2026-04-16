@@ -25,13 +25,16 @@ const ActiveCourses = () => {
     return list;
   }, [globalData]);
 
-  // THE ULTIMATE FIX: Bulletproof string matching
-  const filteredCourses = courses.filter(c => {
-    const sTerm = String(searchTerm || '').toLowerCase();
-    const cName = String(c.name || '').toLowerCase();
-    const cCode = String(c.code || '').toLowerCase();
-    return cName.includes(sTerm) || cCode.includes(sTerm);
-  });
+  // THE FIX: Bulletproof filter logic
+  const filteredCourses = useMemo(() => {
+    if (!searchTerm) return courses;
+    const sTerm = searchTerm.toLowerCase().trim();
+    return courses.filter(c => {
+      const cName = (c.name || '').toLowerCase();
+      const cCode = (c.code || '').toLowerCase();
+      return cName.includes(sTerm) || cCode.includes(sTerm);
+    });
+  }, [courses, searchTerm]);
 
   const getTotalStudents = (divisions) => safeArr(divisions).reduce((acc, div) => acc + (div.stuCount || 0), 0);
 
@@ -70,6 +73,7 @@ const ActiveCourses = () => {
         ) : filteredCourses.length === 0 ? (
           <p className="text-slate-500 dark:text-slate-400 col-span-3 text-center py-10 font-bold text-lg">No courses match your search.</p>
         ) : (
+          /* THE CRITICAL FIX: Mapping over filteredCourses, NOT courses! */
           filteredCourses.map((course) => (
             <div key={course.code} className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-[0_4px_15px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(99,102,241,0.15)] hover:-translate-y-2 hover:shadow-[0_8px_30px_rgba(79,70,229,0.15)] dark:hover:shadow-[0_8px_30px_rgba(99,102,241,0.3)] hover:border-indigo-500/50 transition-all duration-300 group cursor-pointer animate-in fade-in zoom-in-95">
               <div className="w-12 h-12 bg-brand-blue/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110 group-hover:rotate-3">
