@@ -32,7 +32,6 @@ const YourData = () => {
     student: (mI, sI, dI, stI) => { data[mI].subjects[sI].divisions[dI].students.splice(stI, 1); save(data); }
   };
 
-  // THE FIX: Try/Catch block to guarantee the modal closes
   const handleModalSubmit = (e) => {
     e.preventDefault();
     try {
@@ -56,7 +55,7 @@ const YourData = () => {
     } catch (err) {
       console.error("Error saving structure:", err);
     } finally {
-      setModal(null); // Guaranteed to close
+      setModal(null);
     }
   };
 
@@ -161,7 +160,6 @@ const YourData = () => {
         setIsSaving(true); 
 
         try {
-          // 1. Extract data from the UI Grid
           const rows = e.target.querySelectorAll('tr.student-row');
           rows.forEach((row, i) => {
             if(d.students[i]) {
@@ -180,10 +178,8 @@ const YourData = () => {
             }
           });
           
-          // 2. Save to Master UI Store
           save(data);
 
-          // 3. --- THE FIX: STRICT EXCEL EXPORT ENGINE ---
           const majorName = data[path[0]].name || 'Major';
           const subCode = data[path[0]].subjects[path[1]].code || 'Sub';
           const subName = data[path[0]].subjects[path[1]].name || 'Course';
@@ -208,11 +204,9 @@ const YourData = () => {
           ws['!cols'] = [{ wch: 15 }, { wch: 15 }, { wch: 25 }, { wch: 10 }, { wch: 15 }, { wch: 25 }, { wch: 20 }, { wch: 15 }, { wch: 10 }];
           const wb = XLSX.utils.book_new();
           
-          // Fix: Ensure sheet names are valid for Excel (Max 31 chars, no special chars)
           const safeSheetName = tName.replace(/[^a-zA-Z0-9 ]/g, "").substring(0, 30);
           XLSX.utils.book_append_sheet(wb, ws, safeSheetName || "Data"); 
           
-          // Fix: Ensure file name is completely safe for all OS
           const safeFileName = `UniAnalytics_${subCode.replace(/[^a-zA-Z0-9]/g, "")}_${tName.replace(/[^a-zA-Z0-9]/g, "_")}.xlsx`;
           XLSX.writeFile(wb, safeFileName);
 
@@ -220,7 +214,6 @@ const YourData = () => {
           console.error("Excel Export Error:", error);
           alert("Failed to export Excel. Please ensure test names contain no special characters.");
         } finally {
-          // Fix: Guarantees the button returns to normal state even if it errors
           setTimeout(() => setIsSaving(false), 1500);
         }
       };
@@ -239,14 +232,17 @@ const YourData = () => {
             <h3 className="font-extrabold text-xl text-indigo-500 dark:text-indigo-400">Live Editor: {tName}</h3>
             <div className="flex gap-3">
               <button type="button" onClick={addNewStudentToGrid} className="px-5 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 hover:scale-105 transition-all shadow-sm"><Plus size={18}/> Add Row</button>
+              
+              {/* THE FIX: Styled to match the blue theme exactly! */}
               <button 
                 type="submit" 
                 disabled={isSaving}
-                className={`px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all shadow-[0_0_15px_rgba(16,185,129,0.4)] ${isSaving ? 'bg-emerald-600 text-white cursor-default scale-105 shadow-[0_0_20px_rgba(16,185,129,0.6)]' : 'bg-gradient-to-r from-emerald-500 via-green-400 to-emerald-500 animate-wave text-white hover:scale-105'}`}
+                className={`px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all shadow-[0_0_15px_rgba(79,70,229,0.4)] ${isSaving ? 'bg-indigo-600 text-white cursor-default scale-105 shadow-[0_0_20px_rgba(79,70,229,0.6)]' : 'bg-gradient-to-r from-blue-600 via-indigo-500 to-blue-600 animate-wave text-white hover:scale-105'}`}
               >
                 {isSaving ? <CheckCircle2 size={18}/> : <Download size={18}/>}
                 {isSaving ? 'Saved & Downloaded!' : 'Save & Export Excel'}
               </button>
+
             </div>
           </div>
           <div className="overflow-x-auto max-h-[60vh] relative z-10">
