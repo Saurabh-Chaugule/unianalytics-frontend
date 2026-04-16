@@ -40,6 +40,7 @@ const Dashboard = () => {
   const [fDiv, setFDiv] = useState('All');
   const [fTest, setFTest] = useState('All'); 
 
+  // EXACT CASCADING RESET LOGIC
   const handleMajorChange = (e) => { setFMajor(e.target.value); setFSub('All'); setFDiv('All'); setFTest('All'); };
   const handleSubChange = (e) => { setFSub(e.target.value); setFDiv('All'); setFTest('All'); };
   const handleDivChange = (e) => { setFDiv(e.target.value); setFTest('All'); };
@@ -69,7 +70,7 @@ const Dashboard = () => {
     return { totalStudents, totalCourses, avgMarks: marksCount > 0 ? ((totalMarks/marksCount)*100).toFixed(1) : 0, atRiskCount };
   }, [globalData]);
 
-  // THE FIX: Strict Funnel applied directly to your Dashboard Explorer
+  // THE FIX: 1:1 EXACT STRING MATCHING MATH ENGINE
   const chartData = useMemo(() => {
     let testMap = {}; let gradeCounts = { A: 0, B: 0, C: 0, F: 0 };
     let totalGraded = 0;
@@ -79,16 +80,14 @@ const Dashboard = () => {
       safeArr(m?.subjects).forEach(sub => { 
         if(fSub !== 'All' && sub.code !== fSub) return;
         safeArr(sub?.divisions).forEach(div => { 
-          const cleanDivName = div?.name?.replace(/^Div\s+/i, '') || '';
-          const cleanFDiv = fDiv.replace(/^Div\s+/i, '');
-          if(fDiv !== 'All' && cleanDivName !== cleanFDiv && div.name !== fDiv) return;
+          if(fDiv !== 'All' && div.name !== fDiv) return; // Exact match, no stripping
           
           safeArr(div?.students).forEach(student => {
             let sOb = 0; let sMx = 0;
             let validTestFound = false;
 
             safeArr(student?.tests).forEach(test => {
-              if(fTest !== 'All' && test.name !== fTest) return;
+              if(fTest !== 'All' && test.name !== fTest) return; // Exact match
               
               validTestFound = true;
               if(!testMap[test.name]) testMap[test.name] = { ob: 0, mx: 0 };
@@ -113,10 +112,11 @@ const Dashboard = () => {
     return { perf, dist, totalGraded };
   }, [globalData, fMajor, fSub, fDiv, fTest]);
 
+  // THE FIX: CASCADING LIST GENERATION
   const majorsList = ['All', ...new Set(safeArr(globalData?.majors).map(m => m.name))];
   const subsList = ['All', ...new Set(safeArr(globalData?.majors).filter(m => fMajor === 'All' || m.name === fMajor).flatMap(m => safeArr(m?.subjects)).map(s => s.code))];
-  const divsList = ['All', ...new Set(safeArr(globalData?.majors).filter(m => fMajor === 'All' || m.name === fMajor).flatMap(m => safeArr(m?.subjects)).filter(s => fSub === 'All' || s.code === fSub).flatMap(s => safeArr(s?.divisions)).map(d => d?.name?.replace(/^Div\s+/i, '')))];
-  const testsList = ['All', ...new Set(safeArr(globalData?.majors).filter(m => fMajor === 'All' || m.name === fMajor).flatMap(m => safeArr(m?.subjects)).filter(s => fSub === 'All' || s.code === fSub).flatMap(s => safeArr(s?.divisions)).filter(d => fDiv === 'All' || d.name === fDiv || d?.name?.replace(/^Div\s+/i, '') === fDiv).flatMap(d => safeArr(d?.students)).flatMap(st => safeArr(st?.tests)).map(t => t.name))];
+  const divsList = ['All', ...new Set(safeArr(globalData?.majors).filter(m => fMajor === 'All' || m.name === fMajor).flatMap(m => safeArr(m?.subjects)).filter(s => fSub === 'All' || s.code === fSub).flatMap(s => safeArr(s?.divisions)).map(d => d.name))];
+  const testsList = ['All', ...new Set(safeArr(globalData?.majors).filter(m => fMajor === 'All' || m.name === fMajor).flatMap(m => safeArr(m?.subjects)).filter(s => fSub === 'All' || s.code === fSub).flatMap(s => safeArr(s?.divisions)).filter(d => fDiv === 'All' || d.name === fDiv).flatMap(d => safeArr(d?.students)).flatMap(st => safeArr(st?.tests)).map(t => t.name))];
 
   return (
     <div className="space-y-6 fade-in pb-10">
@@ -173,18 +173,26 @@ const Dashboard = () => {
             <div className="flex flex-col xl:flex-row justify-between items-center mb-6 gap-4 border-b border-slate-100 dark:border-slate-700 pb-4">
               <h3 className="text-lg font-medium text-slate-900 dark:text-white whitespace-nowrap">Granular Data Explorer</h3>
               <div className="flex flex-wrap gap-2 justify-end">
-                <select value={fMajor} onChange={handleMajorChange} className="p-2 bg-slate-50 dark:bg-slate-900 dark:border-slate-600 dark:text-white border rounded-lg text-sm font-medium outline-none focus:ring-2 ring-indigo-500 transition-colors">{majorsList.map(m => <option key={m} value={m} className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-normal">Major: {m}</option>)}</select>
-                <select value={fSub} onChange={handleSubChange} className="p-2 bg-slate-50 dark:bg-slate-900 dark:border-slate-600 dark:text-white border rounded-lg text-sm font-medium outline-none focus:ring-2 ring-indigo-500 transition-colors">{subsList.map(s => <option key={s} value={s} className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-normal">Sub: {s}</option>)}</select>
-                <select value={fDiv} onChange={handleDivChange} className="p-2 bg-slate-50 dark:bg-slate-900 dark:border-slate-600 dark:text-white border rounded-lg text-sm font-medium outline-none focus:ring-2 ring-indigo-500 transition-colors">{divsList.map(d => <option key={d} value={d} className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-normal">Div: {d}</option>)}</select>
-                <select value={fTest} onChange={e=>setFTest(e.target.value)} className="p-2 bg-blue-50 dark:bg-indigo-900/40 border border-blue-200 dark:border-indigo-500/50 rounded-lg text-sm font-semibold text-indigo-600 dark:text-indigo-300 outline-none focus:ring-2 ring-indigo-500 transition-colors">{testsList.map(t => <option key={t} value={t} className="bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 font-medium">Test: {t}</option>)}</select>
+                <select value={fMajor} onChange={handleMajorChange} className="p-2 bg-slate-50 dark:bg-slate-900 dark:border-slate-600 dark:text-white border rounded-lg text-sm font-medium outline-none focus:ring-2 ring-indigo-500 transition-colors">
+                  {majorsList.map(m => <option key={m} value={m} className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-normal">Major: {m}</option>)}
+                </select>
+                <select value={fSub} onChange={handleSubChange} className="p-2 bg-slate-50 dark:bg-slate-900 dark:border-slate-600 dark:text-white border rounded-lg text-sm font-medium outline-none focus:ring-2 ring-indigo-500 transition-colors">
+                  {subsList.map(s => <option key={s} value={s} className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-normal">Sub: {s}</option>)}
+                </select>
+                <select value={fDiv} onChange={handleDivChange} className="p-2 bg-slate-50 dark:bg-slate-900 dark:border-slate-600 dark:text-white border rounded-lg text-sm font-medium outline-none focus:ring-2 ring-indigo-500 transition-colors">
+                  {divsList.map(d => <option key={d} value={d} className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-normal">{d === 'All' ? 'Div: All' : (d.toLowerCase().startsWith('div') ? d : `Div: ${d}`)}</option>)}
+                </select>
+                <select value={fTest} onChange={e=>setFTest(e.target.value)} className="p-2 bg-blue-50 dark:bg-indigo-900/40 border border-blue-200 dark:border-indigo-500/50 rounded-lg text-sm font-semibold text-indigo-600 dark:text-indigo-300 outline-none focus:ring-2 ring-indigo-500 transition-colors">
+                  {testsList.map(t => <option key={t} value={t} className="bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 font-medium">Test: {t}</option>)}
+                </select>
               </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2 h-72">
                 <h4 className="text-xs font-medium text-slate-500 dark:text-slate-400 text-center mb-4 uppercase tracking-widest">Test Performance Trends (Marks %)</h4>
-                {chartData.perf.length === 0 ? <div className="h-full flex items-center justify-center text-slate-400 font-medium">No tests match filter</div> : (
-                  <ResponsiveContainer width="100%" height="100%">
+                {chartData.perf.length === 0 ? <div className="h-full flex items-center justify-center text-slate-400 font-medium animate-in fade-in">No tests match filter</div> : (
+                  <ResponsiveContainer width="100%" height="100%" className="animate-in fade-in duration-500">
                     <BarChart data={chartData.perf}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#64748b" opacity={0.2} />
                       <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontWeight: 'medium'}}/>
@@ -209,9 +217,9 @@ const Dashboard = () => {
               
               <div className="flex flex-col items-center justify-start">
                 <h4 className="text-xs font-medium text-slate-500 dark:text-slate-400 text-center uppercase tracking-widest mb-2">Grade Distribution</h4>
-                {chartData.dist.length === 0 ? <div className="h-48 flex items-center justify-center text-slate-400 font-medium">No grades match filter</div> : (
+                {chartData.dist.length === 0 ? <div className="h-48 flex items-center justify-center text-slate-400 font-medium animate-in fade-in">No grades match filter</div> : (
                   <>
-                    <div className="h-48 w-full relative flex justify-center items-center">
+                    <div className="h-48 w-full relative flex justify-center items-center animate-in zoom-in-95 duration-500">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                           <Pie data={chartData.dist} innerRadius={55} outerRadius={75} paddingAngle={5} dataKey="value" stroke="none">
@@ -223,7 +231,7 @@ const Dashboard = () => {
                     </div>
                     <div className="w-full mt-4 space-y-2 px-4 overflow-y-auto max-h-40 scrollbar-hide">
                       {chartData.dist.map((item, i) => (
-                        <div key={i} className="flex justify-between items-center text-sm p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                        <div key={i} className="flex justify-between items-center text-sm p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors animate-in slide-in-from-right-4" style={{animationDelay: `${i * 50}ms`}}>
                           <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full shadow-sm" style={{backgroundColor: COLORS[i % COLORS.length]}}></div><span className="font-medium text-slate-700 dark:text-slate-300">{item.name}</span></div>
                           <span className="font-medium dark:text-white">{item.value}</span>
                         </div>
