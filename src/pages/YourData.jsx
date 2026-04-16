@@ -2,10 +2,9 @@
 import React, { useState, useRef } from 'react';
 import { FolderTree, Trash2, Edit, Plus, Save, X, ArrowLeft, DatabaseZap, CheckCircle2, Download } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import * as XLSX from 'xlsx'; // --- ADDED: Excel Engine ---
+import * as XLSX from 'xlsx';
 import useStore from '../store/useStore';
 
-// --- Helper guarantees we always have an array and prevents crashes ---
 const safeArr = (val) => Array.isArray(val) ? val : [];
 
 const YourData = () => {
@@ -33,24 +32,32 @@ const YourData = () => {
     student: (mI, sI, dI, stI) => { data[mI].subjects[sI].divisions[dI].students.splice(stI, 1); save(data); }
   };
 
+  // THE FIX: Try/Catch block to guarantee the modal closes
   const handleModalSubmit = (e) => {
     e.preventDefault();
-    if (modal.level === 'major') {
-      if (modal.type === 'add') data.push({ name: modal.data.name, subjects: [] });
-      else data[modal.pIndex].name = modal.data.name;
-    } 
-    else if (modal.level === 'sub') {
-      const m = data[path[0]];
-      if (modal.type === 'add') m.subjects.push({ code: modal.data.code, name: modal.data.name, divisions: [] });
-      else { m.subjects[modal.pIndex].code = modal.data.code; m.subjects[modal.pIndex].name = modal.data.name; }
-    } 
-    else if (modal.level === 'div') {
-      const s = data[path[0]].subjects[path[1]];
-      if (modal.type === 'add') s.divisions.push({ name: modal.data.name, students: [] });
-      else s.divisions[modal.pIndex].name = modal.data.name;
+    try {
+      if (modal.level === 'major') {
+        if (modal.type === 'add') data.push({ name: modal.data.name, subjects: [] });
+        else data[modal.pIndex].name = modal.data.name;
+      } 
+      else if (modal.level === 'sub') {
+        const m = data[path[0]];
+        if (!m.subjects) m.subjects = [];
+        if (modal.type === 'add') m.subjects.push({ code: modal.data.code, name: modal.data.name, divisions: [] });
+        else { m.subjects[modal.pIndex].code = modal.data.code; m.subjects[modal.pIndex].name = modal.data.name; }
+      } 
+      else if (modal.level === 'div') {
+        const s = data[path[0]].subjects[path[1]];
+        if (!s.divisions) s.divisions = [];
+        if (modal.type === 'add') s.divisions.push({ name: modal.data.name, students: [] });
+        else s.divisions[modal.pIndex].name = modal.data.name;
+      }
+      save(data);
+    } catch (err) {
+      console.error("Error saving structure:", err);
+    } finally {
+      setModal(null); // Guaranteed to close
     }
-    save(data);
-    setModal(null);
   };
 
   if (data.length === 0) return (
@@ -153,75 +160,69 @@ const YourData = () => {
         e.preventDefault();
         setIsSaving(true); 
 
-        // 1. Extract data from the UI Grid
-        const rows = e.target.querySelectorAll('tr.student-row');
-        rows.forEach((row, i) => {
-          if(d.students[i]) {
-            d.students[i].rollNo = row.querySelector('.rno').value || d.students[i].rollNo;
-            d.students[i].name = row.querySelector('.name').value || d.students[i].name;
-            
-            if (!d.students[i].tests) d.students[i].tests = [];
-            let tIndex = d.students[i].tests.findIndex(t => t.name === tName);
-            const newObtained = Number(row.querySelector('.ob').value) || 0;
-            
-            if (tIndex >= 0) {
-              d.students[i].tests[tIndex].obtained = newObtained;
-            } else {
-              d.students[i].tests.push({ name: tName, obtained: newObtained, max: 100 });
+        try {
+          // 1. Extract data from the UI Grid
+          const rows = e.target.querySelectorAll('tr.student-row');
+          rows.forEach((row, i) => {
+            if(d.students[i]) {
+              d.students[i].rollNo = row.querySelector('.rno').value || d.students[i].rollNo;
+              d.students[i].name = row.querySelector('.name').value || d.students[i].name;
+              
+              if (!d.students[i].tests) d.students[i].tests = [];
+              let tIndex = d.students[i].tests.findIndex(t => t.name === tName);
+              const newObtained = Number(row.querySelector('.ob').value) || 0;
+              
+              if (tIndex >= 0) {
+                d.students[i].tests[tIndex].obtained = newObtained;
+              } else {
+                d.students[i].tests.push({ name: tName, obtained: newObtained, max: 100 });
+              }
             }
-          }
-        });
-        
-        // 2. Save to Master UI Store
-        save(data);
+          });
+          
+          // 2. Save to Master UI Store
+          save(data);
 
-        // 3. --- EXCEL EXPORT MAGIC ---
-        // Dynamically grab context for the Excel rows
-        const majorName = data[path[0]].name;
-        const subCode = data[path[0]].subjects[path[1]].code;
-        const subName = data[path[0]].subjects[path[1]].name;
-        const cleanDivName = d.name.replace(/^Div\s+/i, ''); 
+          // 3. --- THE FIX: STRICT EXCEL EXPORT ENGINE ---
+          const majorName = data[path[0]].name || 'Major';
+          const subCode = data[path[0]].subjects[path[1]].code || 'Sub';
+          const subName = data[path[0]].subjects[path[1]].name || 'Course';
+          const cleanDivName = d.name.replace(/^Div\s+/i, ''); 
 
-        // Build array matching the exact format "AddData" requires
-        const excelData = safeArr(d.students).map(stu => {
-          const tData = safeArr(stu.tests).find(t => t.name === tName) || { obtained: 0, max: 100 };
-          return {
-            "Major": majorName,
-            "Subject Code": subCode,
-            "Subject Name": subName,
-            "Division": cleanDivName,
-            "Roll Number": stu.rollNo,
-            "Student Name": stu.name,
-            "Test Name": tName,
-            "Obtained Marks": tData.obtained,
-            "Max Marks": tData.max
-          };
-        });
+          const excelData = safeArr(d.students).map(stu => {
+            const tData = safeArr(stu.tests).find(t => t.name === tName) || { obtained: 0, max: 100 };
+            return {
+              "Major": majorName,
+              "Subject Code": subCode,
+              "Subject Name": subName,
+              "Division": cleanDivName,
+              "Roll Number": stu.rollNo,
+              "Student Name": stu.name,
+              "Test Name": tName,
+              "Obtained Marks": tData.obtained,
+              "Max Marks": tData.max
+            };
+          });
 
-        // Generate the Excel Sheet
-        const ws = XLSX.utils.json_to_sheet(excelData);
-        
-        // Auto-size columns to make it look professional
-        ws['!cols'] = [
-          { wch: Math.max(15, majorName.length) }, 
-          { wch: 15 }, 
-          { wch: Math.max(20, subName.length) }, 
-          { wch: 10 }, 
-          { wch: 15 }, 
-          { wch: 25 }, 
-          { wch: 20 }, 
-          { wch: 15 }, 
-          { wch: 10 }  
-        ];
+          const ws = XLSX.utils.json_to_sheet(excelData);
+          ws['!cols'] = [{ wch: 15 }, { wch: 15 }, { wch: 25 }, { wch: 10 }, { wch: 15 }, { wch: 25 }, { wch: 20 }, { wch: 15 }, { wch: 10 }];
+          const wb = XLSX.utils.book_new();
+          
+          // Fix: Ensure sheet names are valid for Excel (Max 31 chars, no special chars)
+          const safeSheetName = tName.replace(/[^a-zA-Z0-9 ]/g, "").substring(0, 30);
+          XLSX.utils.book_append_sheet(wb, ws, safeSheetName || "Data"); 
+          
+          // Fix: Ensure file name is completely safe for all OS
+          const safeFileName = `UniAnalytics_${subCode.replace(/[^a-zA-Z0-9]/g, "")}_${tName.replace(/[^a-zA-Z0-9]/g, "_")}.xlsx`;
+          XLSX.writeFile(wb, safeFileName);
 
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, tName.substring(0, 31)); // Excel limits sheet names to 31 chars
-        
-        // Trigger Download
-        XLSX.writeFile(wb, `UniAnalytics_${subCode}_${tName.replace(/\s+/g, '_')}.xlsx`);
-
-        // 4. Return button to normal state
-        setTimeout(() => setIsSaving(false), 2500);
+        } catch (error) {
+          console.error("Excel Export Error:", error);
+          alert("Failed to export Excel. Please ensure test names contain no special characters.");
+        } finally {
+          // Fix: Guarantees the button returns to normal state even if it errors
+          setTimeout(() => setIsSaving(false), 1500);
+        }
       };
 
       const addNewStudentToGrid = () => {
