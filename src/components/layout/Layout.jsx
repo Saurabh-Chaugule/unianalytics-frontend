@@ -1,10 +1,19 @@
-import React from 'react';
+/* eslint-disable */
+import React, { useEffect } from 'react';
 import { Moon, Sun, Maximize, Minimize } from 'lucide-react';
 import useStore from '../../store/useStore';
 import Sidebar from './Sidebar';
 
 const Layout = ({ children }) => {
-  const { isDarkMode, toggleDarkMode, userRole, focusMode, setFocusMode } = useStore();
+  // THE FIX: Extracted isAuthenticated, isDataLoaded, and loadCloudData from the store
+  const { isDarkMode, toggleDarkMode, userRole, focusMode, setFocusMode, isAuthenticated, isDataLoaded, loadCloudData } = useStore();
+
+  // THE FIX: Auto-Hydration Trigger
+  useEffect(() => {
+    if (isAuthenticated && !isDataLoaded) {
+      loadCloudData();
+    }
+  }, [isAuthenticated, isDataLoaded, loadCloudData]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-900 transition-colors duration-300">

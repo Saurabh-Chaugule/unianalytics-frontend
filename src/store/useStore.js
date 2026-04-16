@@ -8,7 +8,7 @@ const useStore = create(
     (set, get) => ({
       // --- 1. Auth & User State ---
       isAuthenticated: !!localStorage.getItem('uni_token'),
-      userRole: null, 
+      userRole: 'Teacher', 
       userName: '', 
       userEmail: '', 
       userDOB: '',
@@ -20,42 +20,54 @@ const useStore = create(
       topPerformerToggle: true, 
       passThreshold: 40,
 
-      // --- 3. Massive Data State (RAM only, NOT saved to local storage) ---
+      // --- 3. Massive Data State (RAM & Cloud only) ---
       globalData: { majors: [], recentActivities: [] },
+      isDataLoaded: false, // THE FIX: Flag to track if RAM has data
 
       // =========================================
       // ACTIONS
       // =========================================
 
-      login: async (name, role, email, dob) => {
-        set({ 
-          isAuthenticated: true, 
-          userName: name || 'Educator', 
-          userRole: role || 'Teacher', 
-          userEmail: email || 'Not Provided', 
-          userDOB: dob || 'Not Provided' 
-        });
-        
-        // Fetch cloud data automatically on login
+      // THE FIX: Centralized Cloud Fetcher
+      loadCloudData: async () => {
         try {
           const cloudData = await api.getCloudMasterData();
           set(state => ({
-            globalData: { ...state.globalData, majors: cloudData }
+            globalData: { ...state.globalData, majors: cloudData },
+            isDataLoaded: true
           }));
         } catch (e) {
-          console.error("Cloud Fetch Error on Login", e);
+          console.error("Cloud Fetch Error on Refresh", e);
+          set({ isDataLoaded: true }); // Prevent infinite loop if offline
         }
+      },
+
+      login: async (name, role, email, dob) => {
+        const finalName = name || (email ? email.split('@')[0] : 'Educator');
+        
+        set({ 
+          isAuthenticated: true, 
+          userName: finalName, 
+          userRole: role || 'Teacher', 
+          userEmail: email || 'Not Provided', 
+          userDOB: dob || 'Not Provided',
+          isDataLoaded: false // Reset flag on login
+        });
+        
+        // Use the new centralized fetcher
+        await get().loadCloudData();
       },
 
       logout: () => {
         localStorage.removeItem('uni_token');
         set({ 
           isAuthenticated: false, 
-          userRole: null, 
+          userRole: 'Teacher', 
           userName: '', 
           userEmail: '', 
           userDOB: '', 
-          globalData: { majors: [], recentActivities: [] } 
+          globalData: { majors: [], recentActivities: [] },
+          isDataLoaded: false
         });
       },
 
@@ -71,7 +83,6 @@ const useStore = create(
       setTopPerformerToggle: (val) => set({ topPerformerToggle: Boolean(val) }),
       setPassThreshold: (val) => set({ passThreshold: Number(val) }),
 
-      // --- CLOUD SYNC ENGINE ---
       updateMasterData: async (newMajors) => {
         set((state) => ({
           globalData: { 
@@ -85,7 +96,6 @@ const useStore = create(
           await api.syncCloudMasterData(newMajors);
         } catch (error) {
           console.error("Cloud Sync Error:", error);
-          alert("Warning: Failed to save changes to the cloud. Please check connection.");
         }
       },
 
@@ -133,7 +143,6 @@ const useStore = create(
     }),
     {
       name: 'uni-analytics-storage',
-      // THE MAGIC FIX: We save the user settings and auth, but intentionally OMIT the massive globalData
       partialize: (state) => ({
         isAuthenticated: state.isAuthenticated,
         userRole: state.userRole,

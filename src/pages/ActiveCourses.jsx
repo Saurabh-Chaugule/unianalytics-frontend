@@ -25,11 +25,13 @@ const ActiveCourses = () => {
     return list;
   }, [globalData]);
 
-  // THE FIX: Filter courses based on search input
-  const filteredCourses = courses.filter(c => 
-    c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    c.code.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // THE FIX: Safe string checks to prevent crashes when searching
+  const filteredCourses = courses.filter(c => {
+    const sTerm = (searchTerm || '').toLowerCase();
+    const cName = (c.name || '').toLowerCase();
+    const cCode = (c.code || '').toLowerCase();
+    return cName.includes(sTerm) || cCode.includes(sTerm);
+  });
 
   const getTotalStudents = (divisions) => safeArr(divisions).reduce((acc, div) => acc + (div.stuCount || 0), 0);
 
@@ -51,7 +53,7 @@ const ActiveCourses = () => {
         </button>
       </div>
 
-      {/* THE FIX: Search Bar */}
+      {/* Search Bar */}
       <div className="relative mt-6">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20}/>
         <input 
