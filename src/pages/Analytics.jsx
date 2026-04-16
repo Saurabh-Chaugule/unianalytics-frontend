@@ -1,25 +1,17 @@
 /* eslint-disable */
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import useStore from '../store/useStore';
-import Loader from '../components/layout/Loader';
 
 const safeArr = (val) => Array.isArray(val) ? val : [];
 
 const Analytics = () => {
   const { globalData, passThreshold } = useStore();
-  const [isLoading, setIsLoading] = useState(true);
 
   const [fMajor, setFMajor] = useState('All');
   const [fSub, setFSub] = useState('All');
   const [fDiv, setFDiv] = useState('All');
   const [fTest, setFTest] = useState('All');
-
-  useEffect(() => {
-    // Clean 0.6s loading state for UI polish
-    const timer = setTimeout(() => setIsLoading(false), 600);
-    return () => clearTimeout(timer);
-  }, []);
 
   const handleMajorChange = (e) => { setFMajor(e.target.value); setFSub('All'); setFDiv('All'); setFTest('All'); };
   const handleSubChange = (e) => { setFSub(e.target.value); setFDiv('All'); setFTest('All'); };
@@ -30,7 +22,7 @@ const Analytics = () => {
   const dList = ['All', ...new Set(safeArr(globalData?.majors).filter(m => fMajor === 'All' || m.name === fMajor).flatMap(m => safeArr(m?.subjects)).filter(s => fSub === 'All' || s.code === fSub).flatMap(s => safeArr(s?.divisions)).map(d => d?.name?.replace(/^Div\s+/i, '')))];
   const tList = ['All', ...new Set(safeArr(globalData?.majors).filter(m => fMajor === 'All' || m.name === fMajor).flatMap(m => safeArr(m?.subjects)).filter(s => fSub === 'All' || s.code === fSub).flatMap(s => safeArr(s?.divisions)).filter(d => fDiv === 'All' || d.name === fDiv || d?.name?.replace(/^Div\s+/i, '') === fDiv).flatMap(d => safeArr(d?.students)).flatMap(st => safeArr(st?.tests)).map(t => t.name))];
 
-  // STRICT FUNNEL MATH ENGINE
+  // STRICT FUNNEL MATH ENGINE (Fixed Division and Test Filtering)
   const stats = useMemo(() => {
     let totalEnrolled = 0;
     let failingCount = 0;
@@ -47,7 +39,7 @@ const Analytics = () => {
 
         safeArr(sub?.divisions).forEach(div => {
           const cleanDiv = (div?.name || '').replace(/^Div\s+/i, '');
-          if (fDiv !== 'All' && cleanDiv !== fDiv) return; 
+          if (fDiv !== 'All' && cleanDiv !== fDiv && div?.name !== fDiv) return; 
 
           safeArr(div?.students).forEach(s => {
             let sObtained = 0;
@@ -101,8 +93,6 @@ const Analytics = () => {
 
     return { totalEnrolled, sysAvg, failingCount, chartData, pieData };
   }, [globalData, fMajor, fSub, fDiv, fTest, passThreshold]);
-
-  if (isLoading) return <Loader />;
 
   return (
     <div className="space-y-8 fade-in pb-10">
