@@ -67,7 +67,7 @@ const Settings = () => {
       setPassMsg({ type: 'error', text: err.message });
     }
     
-    setTimeout(() => setPassMsg({ type: '', text: '' }), 6000); // Kept longer so they can click the forgot password link
+    setTimeout(() => setPassMsg({ type: '', text: '' }), 5000); 
   };
 
   const openForgotModal = () => {
@@ -77,6 +77,10 @@ const Settings = () => {
     setResetOtp(['', '', '', '', '', '']);
     setResetNewPass('');
     setResetError('');
+    // THE FIX: Clean slate just in case they open it manually
+    setOldPassword('');
+    setNewPassword('');
+    setPassMsg({ type: '', text: '' });
   };
 
   const handleRequestOTP = async (e) => {
@@ -108,7 +112,14 @@ const Settings = () => {
       const enteredCode = resetOtp.join('');
       await apiClient.post('/reset-password', { email: resetEmail, code: enteredCode, new_password: resetNewPass });
       setForgotStep(4);
-      setTimeout(() => { setForgotModal(false); setForgotStep(1); }, 3000);
+      setTimeout(() => { 
+        setForgotModal(false); 
+        setForgotStep(1); 
+        // THE FIX: Wipe the background password boxes so they don't persist
+        setOldPassword('');
+        setNewPassword('');
+        setPassMsg({ type: '', text: '' });
+      }, 3000);
     } catch (err) { setResetError(err.response?.data?.detail || "Failed to secure new password."); } 
     finally { setResetLoading(false); }
   };
@@ -121,7 +132,6 @@ const Settings = () => {
     if (element.nextSibling && element.value) element.nextSibling.focus();
   };
 
-  // THE FIX: Intelligent Backspace Deletion inside Settings Modal
   const handleOtpKeyDown = (e, index) => {
     if (e.key === 'Backspace') {
       e.preventDefault();
@@ -316,20 +326,23 @@ const Settings = () => {
                   
                   <div className="flex items-center justify-between pt-4">
                     <button type="submit" className="px-8 py-3.5 bg-gradient-to-r from-blue-600 via-indigo-500 to-blue-600 animate-wave text-white rounded-xl font-bold transition-transform hover:scale-105 shadow-[0_0_15px_rgba(79,70,229,0.4)]">Update Password</button>
-                    <button type="button" onClick={openForgotModal} className="text-sm font-bold text-indigo-500 hover:text-indigo-600 hover:underline transition-colors">Forgot Password?</button>
+                    
+                    {/* THE FIX: Button pulses red if they enter the wrong password */}
+                    <button 
+                      type="button" 
+                      onClick={openForgotModal} 
+                      className={`text-sm font-bold transition-colors ${passMsg.type === 'error' ? 'text-red-500 hover:text-red-600 underline decoration-red-500 decoration-2 underline-offset-4 animate-pulse' : 'text-indigo-500 hover:text-indigo-600 hover:underline'}`}
+                    >
+                      Forgot Password?
+                    </button>
                   </div>
                   
-                  {/* THE FIX: Points user to forgot password if they put wrong current password */}
                   {passMsg.text && (
                     <div className={`mt-3 p-3 rounded-xl flex items-start gap-2 animate-in fade-in border ${passMsg.type === 'success' ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30 text-emerald-600 dark:text-emerald-400' : passMsg.type === 'loading' ? 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400' : 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400'}`}>
                       {passMsg.type === 'success' ? <CheckCircle2 size={18} className="mt-0.5 flex-shrink-0"/> : passMsg.type === 'error' ? <AlertTriangle size={18} className="mt-0.5 flex-shrink-0"/> : null}
                       <div className="flex-1">
                         <p className="text-sm font-bold">{passMsg.text}</p>
-                        {passMsg.type === 'error' && (
-                          <button type="button" onClick={openForgotModal} className="text-xs font-extrabold text-indigo-600 dark:text-indigo-400 mt-1 hover:underline hover:text-indigo-500 block transition-colors">
-                            Forgot your password? Reset it here &rarr;
-                          </button>
-                        )}
+                        {/* Removed the redundant link here! */}
                       </div>
                     </div>
                   )}
