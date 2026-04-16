@@ -145,6 +145,14 @@ const AddData = () => {
     setStep(3); 
   };
 
+  // THE FIX: Centralized cancel handler to wipe the state clean
+  const handleCancelManual = () => {
+    setActiveTab('excel');
+    setStep(1);
+    setBatchInfo({ major: '', subCode: '', subName: '', division: '', testName: '', max: 100, numStudents: 5 });
+    setStudentsGrid([]);
+  };
+
   return (
     <div className="space-y-6 fade-in pb-10">
       <button onClick={() => navigate(-1)} className="flex items-center space-x-2 text-slate-500 hover:text-indigo-500 dark:hover:text-indigo-400 font-bold mb-2 transition-colors">
@@ -254,9 +262,9 @@ const AddData = () => {
                     <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1 block">Default Max Marks</label><input required type="number" value={batchInfo.max} onChange={e=>setBatchInfo({...batchInfo, max: e.target.value})} className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 dark:text-white rounded-xl outline-none focus:ring-2 ring-indigo-500 transition-all"/></div>
                     <div><label className="text-xs font-bold text-indigo-500 dark:text-indigo-400 uppercase tracking-widest mb-1 block">Number of Students</label><input required type="number" min="1" max="100" value={batchInfo.numStudents} onChange={e=>setBatchInfo({...batchInfo, numStudents: e.target.value})} className="w-full p-3 bg-blue-50 dark:bg-indigo-900/20 border border-blue-200 dark:border-indigo-500/50 rounded-xl outline-none font-bold text-indigo-600 dark:text-indigo-300 focus:ring-2 ring-indigo-500 transition-all"/></div>
                  </div>
-                 {/* THE FIX: Added Cancel Option next to Proceed */}
                  <div className="flex gap-4 pt-2">
-                   <button type="button" onClick={() => {setActiveTab('excel'); setStep(1);}} className="w-1/3 py-4 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">Cancel</button>
+                   {/* THE FIX: Apply handleCancelManual to completely clear state */}
+                   <button type="button" onClick={handleCancelManual} className="w-1/3 py-4 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">Cancel</button>
                    <button type="submit" className="flex-1 py-4 bg-gradient-to-r from-blue-600 via-indigo-500 to-blue-600 animate-wave text-white rounded-xl font-bold flex justify-center items-center gap-2 hover:scale-105 shadow-[0_0_15px_rgba(79,70,229,0.4)] transition-transform">Proceed to Roster <ArrowRight size={18}/></button>
                  </div>
               </form>
@@ -281,9 +289,9 @@ const AddData = () => {
                      </tbody>
                    </table>
                  </div>
-                 {/* THE FIX: Styled to match the blue/indigo theme and added Cancel option */}
                  <div className="flex gap-4 pt-2">
-                   <button type="button" onClick={() => {setActiveTab('excel'); setStep(1);}} className="w-1/3 py-4 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">Cancel</button>
+                   {/* THE FIX: Apply handleCancelManual to completely clear state */}
+                   <button type="button" onClick={handleCancelManual} className="w-1/3 py-4 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">Cancel</button>
                    <button onClick={handleBatchSubmit} className="flex-1 py-4 bg-gradient-to-r from-blue-600 via-indigo-500 to-blue-600 animate-wave text-white rounded-xl font-bold shadow-[0_0_20px_rgba(79,70,229,0.5)] hover:scale-105 transition-transform flex items-center justify-center"><Plus className="mr-2" size={20}/> Inject Batch Data</button>
                  </div>
               </div>
