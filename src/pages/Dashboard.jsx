@@ -7,7 +7,6 @@ import useStore from '../store/useStore';
 
 const COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444'];
 
-// --- THE FIX: This helper guarantees we always have an array and prevents ASI parenthesis crashes ---
 const safeArr = (val) => Array.isArray(val) ? val : [];
 
 const MetricCard = ({ title, value, subtext, icon: Icon, onClick }) => (
@@ -20,12 +19,10 @@ const MetricCard = ({ title, value, subtext, icon: Icon, onClick }) => (
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  // Pulling userName from the store
   const { globalData, deleteActivity, deleteAllActivities, userName } = useStore();
   const [showAllLogs, setShowAllLogs] = useState(false);
   const [greeting, setGreeting] = useState('');
 
-  // Extract the first name (or fallback to 'Educator' if null/empty)
   const firstName = userName ? userName.split(' ')[0] : 'Educator';
 
   useEffect(() => {
@@ -47,7 +44,6 @@ const Dashboard = () => {
   const handleSubChange = (e) => { setFSub(e.target.value); setFDiv('All'); setFTest('All'); };
   const handleDivChange = (e) => { setFDiv(e.target.value); setFTest('All'); };
 
-  // CRASH-PROOF STATS CALCULATION
   const stats = useMemo(() => {
     let totalStudents = 0; let totalCourses = 0; let totalMarks = 0; let marksCount = 0; let atRiskCount = 0;
     
@@ -73,7 +69,7 @@ const Dashboard = () => {
     return { totalStudents, totalCourses, avgMarks: marksCount > 0 ? ((totalMarks/marksCount)*100).toFixed(1) : 0, atRiskCount };
   }, [globalData]);
 
-  // CRASH-PROOF CHART CALCULATION
+  // THE FIX: Strict Funnel applied directly to your Dashboard Explorer
   const chartData = useMemo(() => {
     let testMap = {}; let gradeCounts = { A: 0, B: 0, C: 0, F: 0 };
     let totalGraded = 0;
@@ -89,15 +85,20 @@ const Dashboard = () => {
           
           safeArr(div?.students).forEach(student => {
             let sOb = 0; let sMx = 0;
+            let validTestFound = false;
+
             safeArr(student?.tests).forEach(test => {
               if(fTest !== 'All' && test.name !== fTest) return;
+              
+              validTestFound = true;
               if(!testMap[test.name]) testMap[test.name] = { ob: 0, mx: 0 };
               testMap[test.name].ob += test.obtained || 0; 
               testMap[test.name].mx += test.max || 0;
               sOb += test.obtained || 0; 
               sMx += test.max || 0;
             });
-            if(sMx > 0) {
+
+            if(validTestFound && sMx > 0) {
               totalGraded++;
               let p = (sOb/sMx)*100;
               if(p >= 75) gradeCounts.A++; else if(p >= 60) gradeCounts.B++; else if(p >= 40) gradeCounts.C++; else gradeCounts.F++;
@@ -112,7 +113,6 @@ const Dashboard = () => {
     return { perf, dist, totalGraded };
   }, [globalData, fMajor, fSub, fDiv, fTest]);
 
-  // CRASH-PROOF DROPDOWNS
   const majorsList = ['All', ...new Set(safeArr(globalData?.majors).map(m => m.name))];
   const subsList = ['All', ...new Set(safeArr(globalData?.majors).filter(m => fMajor === 'All' || m.name === fMajor).flatMap(m => safeArr(m?.subjects)).map(s => s.code))];
   const divsList = ['All', ...new Set(safeArr(globalData?.majors).filter(m => fMajor === 'All' || m.name === fMajor).flatMap(m => safeArr(m?.subjects)).filter(s => fSub === 'All' || s.code === fSub).flatMap(s => safeArr(s?.divisions)).map(d => d?.name?.replace(/^Div\s+/i, '')))];
