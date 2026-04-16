@@ -25,11 +25,11 @@ const ActiveCourses = () => {
     return list;
   }, [globalData]);
 
-  // THE FIX: Safe string checks to prevent crashes when searching
+  // THE ULTIMATE FIX: Bulletproof string matching
   const filteredCourses = courses.filter(c => {
-    const sTerm = (searchTerm || '').toLowerCase();
-    const cName = (c.name || '').toLowerCase();
-    const cCode = (c.code || '').toLowerCase();
+    const sTerm = String(searchTerm || '').toLowerCase();
+    const cName = String(c.name || '').toLowerCase();
+    const cCode = String(c.code || '').toLowerCase();
     return cName.includes(sTerm) || cCode.includes(sTerm);
   });
 
@@ -53,7 +53,6 @@ const ActiveCourses = () => {
         </button>
       </div>
 
-      {/* Search Bar */}
       <div className="relative mt-6">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20}/>
         <input 
