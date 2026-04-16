@@ -69,7 +69,6 @@ const Rankings = () => {
     .filter(s => s.p >= minMarks)
     .sort((a,b) => b.p - a.p).map((s, i) => ({...s, rank: i+1}));
 
-  // THE FIX: DOM Rendering Limit (Anti-Lag for 100k+ rows)
   const displayedRankings = filtered.slice(0, 100);
 
   const mList = ['All', ...new Set(safeArr(globalData?.majors).map(m => m.name))];
@@ -109,7 +108,6 @@ const Rankings = () => {
       
       <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-[0_4px_15px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(99,102,241,0.15)] overflow-hidden mt-6">
         
-        {/* THE FIX: Render Warning Banner for 100k Rows */}
         {filtered.length > 100 && (
           <div className="bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 p-3 text-center text-sm font-bold border-b border-amber-100 dark:border-amber-900/50">
             Showing top 100 of {filtered.length.toLocaleString()} students. Use the search or filters to find specific records.
@@ -118,40 +116,67 @@ const Rankings = () => {
 
         <div className="p-6 border-b border-slate-100 dark:border-slate-700 relative"><Search className="absolute left-10 top-9 text-slate-400" size={20}/><input type="text" placeholder="Search Roll No or Name..." value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} className="w-full pl-12 pr-6 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 dark:text-white rounded-xl outline-none font-semibold focus:ring-2 ring-indigo-500 transition-all text-base"/></div>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm"><thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 uppercase text-[11px] font-extrabold tracking-widest"><tr><th className="px-6 py-5">Rank</th><th className="px-6 py-5">Roll No & Name</th><th className="px-6 py-5">Academic Context</th><th className="px-6 py-5 text-right">Combined Marks (%)</th></tr></thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">{displayedRankings.length === 0 ? <tr><td colSpan="4" className="p-8 text-center text-slate-500 dark:text-slate-400 font-bold text-lg">No rankings match filters.</td></tr> : displayedRankings.map(s => (
-            <tr key={s.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors group">
-              <td className="px-6 py-5 align-top"><div className={`w-10 h-10 rounded-full flex items-center justify-center font-extrabold text-base transition-transform group-hover:scale-110 ${s.rank === 1 ? 'bg-gradient-to-br from-amber-200 to-amber-400 text-amber-900 shadow-[0_0_15px_rgba(251,191,36,0.5)]' : s.rank === 2 ? 'bg-gradient-to-br from-slate-200 to-slate-400 text-slate-800 shadow-md' : s.rank === 3 ? 'bg-gradient-to-br from-orange-200 to-orange-400 text-orange-900 shadow-[0_0_10px_rgba(249,115,22,0.4)]' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300'}`}>{s.rank}</div></td>
-              
-              <td className="px-6 py-5 align-top">
-                <div className="font-bold text-base text-slate-900 dark:text-white group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors">{s.name}</div>
-                <div className="text-xs font-mono font-bold text-slate-500 dark:text-slate-400 mt-1 mb-1">{s.rollNo}</div>
-                
-                {topPerformerToggle && s.p >= 90 && (
-                  <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-2 py-0.5 rounded text-[10px] font-extrabold border border-amber-200 dark:border-amber-700/50 shadow-sm mt-1">
-                    ⭐ Top Performer
-                  </span>
-                )}
-              </td>
-              
-              <td className="px-6 py-5">
-                <div className="flex flex-col gap-2">
-                  <div className="flex flex-wrap gap-2">
-                    <span className="bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 px-2 py-1 rounded text-xs font-bold border border-slate-200 dark:border-slate-700 shadow-sm">{s.major}</span>
-                    <span className="bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 px-2 py-1 rounded text-xs font-bold border border-slate-200 dark:border-slate-700 shadow-sm">{s.subject} (Div {s.div})</span>
-                  </div>
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    {s.testDetails.map((td, index) => (
-                      <span key={index} className="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300 px-2 py-1 rounded text-[11px] font-extrabold border border-indigo-200 dark:border-indigo-500/50 shadow-sm">
-                        {td.name}: {td.ob} / {td.mx}
+          <table className="w-full text-left text-sm">
+            <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 uppercase text-[11px] font-extrabold tracking-widest">
+              <tr>
+                <th className="px-6 py-5">Rank</th>
+                <th className="px-6 py-5">Roll No & Name</th>
+                <th className="px-6 py-5">Academic Context</th>
+                <th className="px-6 py-5 text-right">All Tests Combined Marks (%)</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
+              {displayedRankings.length === 0 ? <tr><td colSpan="4" className="p-8 text-center text-slate-500 dark:text-slate-400 font-bold text-lg">No rankings match filters.</td></tr> : displayedRankings.map(s => (
+                <tr key={s.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors group">
+                  <td className="px-6 py-5 align-top">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-extrabold text-base transition-transform group-hover:scale-110 ${s.rank === 1 ? 'bg-gradient-to-br from-amber-200 to-amber-400 text-amber-900 shadow-[0_0_15px_rgba(251,191,36,0.5)]' : s.rank === 2 ? 'bg-gradient-to-br from-slate-200 to-slate-400 text-slate-800 shadow-md' : s.rank === 3 ? 'bg-gradient-to-br from-orange-200 to-orange-400 text-orange-900 shadow-[0_0_10px_rgba(249,115,22,0.4)]' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300'}`}>
+                      {s.rank}
+                    </div>
+                  </td>
+                  
+                  <td className="px-6 py-5 align-top">
+                    <div className="font-bold text-base text-slate-900 dark:text-white group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors">{s.name}</div>
+                    <div className="text-xs font-mono font-bold text-slate-500 dark:text-slate-400 mt-1 mb-1">{s.rollNo}</div>
+                    
+                    {topPerformerToggle && s.p >= 90 && (
+                      <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-2 py-0.5 rounded text-[10px] font-extrabold border border-amber-200 dark:border-amber-700/50 shadow-sm mt-1">
+                        ⭐ Top Performer
                       </span>
-                    ))}
-                  </div>
-                </div>
-              </td>
-              <td className="px-6 py-5 text-right align-top"><div className="font-extrabold text-xl text-slate-900 dark:text-white">{s.marks} <span className="text-sm font-semibold text-slate-400 dark:text-slate-500">/ {s.max}</span></div><div className={`text-xs font-extrabold mt-1 ${s.p >= 75 ? 'text-emerald-500 dark:text-emerald-400' : s.p >= 60 ? 'text-indigo-500 dark:text-indigo-400' : s.p >= 40 ? 'text-amber-500 dark:text-amber-400' : 'text-red-500 dark:text-red-400'}`}>{s.p.toFixed(1)}%</div></td>
-            </tr>
-          ))}</tbody></table>
+                    )}
+                  </td>
+                  
+                  <td className="px-6 py-5">
+                    <div className="flex flex-col gap-2">
+                      <div className="flex flex-wrap gap-2">
+                        <span className="bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 px-2 py-1 rounded text-xs font-bold border border-slate-200 dark:border-slate-700 shadow-sm">{s.major}</span>
+                        <span className="bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 px-2 py-1 rounded text-xs font-bold border border-slate-200 dark:border-slate-700 shadow-sm">{s.subject} (Div {s.div})</span>
+                      </div>
+                      
+                      {/* THE FIX: Smart Tag Truncation for Tests */}
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {s.testDetails.slice(0, 3).map((td, index) => (
+                          <span key={index} className="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300 px-2 py-1 rounded text-[11px] font-extrabold border border-indigo-200 dark:border-indigo-500/50 shadow-sm">
+                            {td.name}: {td.ob} / {td.mx}
+                          </span>
+                        ))}
+                        {s.testDetails.length > 3 && (
+                          <span className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-2 py-1 rounded text-[11px] font-extrabold border border-slate-200 dark:border-slate-700 shadow-sm">
+                            +{s.testDetails.length - 3} more
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-5 text-right align-top">
+                    <div className="font-extrabold text-xl text-slate-900 dark:text-white">{s.marks} <span className="text-sm font-semibold text-slate-400 dark:text-slate-500">/ {s.max}</span></div>
+                    <div className={`text-xs font-extrabold mt-1 ${s.p >= 75 ? 'text-emerald-500 dark:text-emerald-400' : s.p >= 60 ? 'text-indigo-500 dark:text-indigo-400' : s.p >= 40 ? 'text-amber-500 dark:text-amber-400' : 'text-red-500 dark:text-red-400'}`}>
+                      {s.p.toFixed(1)}%
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
